@@ -1,0 +1,85 @@
+### Définir le dossier de travail (remplacer ... par le dossier dans lequel vous avez sauvegardé le fichier)
+setwd(dir = "...")
+
+### Importer la base de données :
+# Le fichier à importer étant un fichier excel, commencez par charger la `bibliothèque' "readxl"
+# Nous créons ensuite l'objet salaire qui contient notre base de données
+library(readxl)
+salaire <- read_excel("salaire.xlsx")
+
+### Exploration de la bdd
+# Pour analyser les différentes catégories composant les variables catégoriques, on peut utiliser la commande "table"
+table(salaire$race)
+table(salaire$education)
+
+### Régression 1 :
+# Notre première régression est la régression linéaire où nous considérons nos variables en "niveau", i.e. sans aucune transformation
+nivniv <- lm(wage ~ age + race + education, data = salaire_complet_version_2_)
+summary(nivniv)
+
+nivniv_bin <- lm(wage ~ age + Black + education, data = salaire_complet_version_2_)
+summary(nivniv_bin)
+
+nivniv_bin <- lm(wage ~ age + Black +Asian+ White +Other + education, data = salaire_complet_version_2_)
+summary(nivniv_bin)
+
+
+
+
+# Les résultats de la commande summary montrent que le R² ajusté est de 26%, ce qui peut laisser penser que les données ne sont pas bien représentées avec ce modèle.
+# La F-stat est statistiquement significative, donc au moins l'une de nos variables explicatives est pertinente.
+# Tous les coefficients, exceptés ceux sur les catégories 3 et 4 de 'race', sont significatifs à au moins 1%
+# Les catégories 1 de 'race' et 'education' ne sont pas présentées : elles sont par défaut exclues de la régression pour éviter le problème de multicolinéarité avec les autres catégories
+
+
+### Variables d'interaction
+# Afin d'effectuer les interactions, il suffit juste d'indiquer dans la régression le symbole d'interaction "*" entre 2 ou plusieurs variables
+# Bon à savoir, cette manipulation inclut automatiquement les variables qui ont été interagies, donc pas besoin de les préciser en plus
+interact <- lm(wage ~ age + race + education*jobclass, data = salaire_complet_version_2_)
+summary(interact)
+
+### Nuage de points
+plot(salaire$age, salaire$wage, xlab = "Age", ylab = "Salaire")
+
+   ### Régression 2
+loglog <- lm(log(wage) ~ log(age) + race + education, data = salaire_complet_version_2_)
+summary(loglog)
+
+### Régression 3
+logniv <- lm(log(wage) ~ age + race + education, data = salaire_complet_version_2_)
+summary(logniv)
+
+### Régression 4
+nivlog <- lm(wage ~ log(age) + race + education, data = salaire)
+summary(nivlog)
+
+
+
+### Régression 5
+# Nous créons d'abord la variable "age au carré" qui est ajoutée à la base
+salaire_complet_version_2_$agecarre <- salaire_complet_version_2_$age^2
+logcar <- lm(wage ~ age + agecarre + race + education, data = salaire_complet_version_2_) 
+summary(logcar)
+
+
+salaire_complet_version_2_$logwagecarre <- salaire_complet_version_2_$logwage^2
+logcar2 <- lm(wage ~ age + agecarre + race + education, data = salaire_complet_version_2_) 
+summary(logcar2)
+
+
+### Transformation de Box-Cox
+# La commande "boxcox" fait partie de la bibliothèque "MASS", à charger donc
+library(MASS)
+boxcox(nivniv, lambda = seq(-1, 1))
+
+boxcox(logniv)
+boxcox(logniv, lambda = seq(-1, 3))
+# Si le résultat du boxcox indique une valeur pour lambda = 1, on garde les données originales
+# Mais si 1 n'appartient pas à l'intervalle défini par les bandes inférieures et supérieures, une transformation est nécessaire
+# Proche de 0, il faudrait appliquer une transformation logarithmique
+# 0,5 => prendre la racine carrée
+# 2 => prendre le carré
+# -1 => prendre l'inverse
+
+boxcox(logcar2)
+
